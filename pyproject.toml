@@ -1,0 +1,16 @@
+# Not a Python distribution: no [project] table. This file declares the test
+# dependency group and pytest configuration for the demo repository only.
+
+[dependency-groups]
+test = [
+  "pytest>=8",
+  "pydantic>=2",
+  "yamlgraph>=0.5.17",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q -m 'not live'"
+markers = [
+  "live: calls the configured provider; costs money; run explicitly with `pytest -m live`",
+]
