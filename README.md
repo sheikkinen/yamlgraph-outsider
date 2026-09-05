@@ -75,10 +75,14 @@ it says YES.
 ## Tests
 
 ```bash
-pip install --group test .      # or: uv sync --group test
+pip install --group test        # or: uv sync --group test
 pytest                          # deterministic: models, reducer, gh calls, launcher
 pytest -m live                  # paid: 4 fixtures × 2 runs on the .env.sample configuration
 ```
+
+The launcher and `gh` tests run fake executables written as POSIX shell scripts;
+on Windows they skip with that reason, and the model, reducer and fixture tests
+still run.
 
 Tested against yamlgraph 0.5.17+ (the checkout used was 0.5.24). Fixture
 expectations were written before the runs (`fixtures/EXPECTATIONS.md`); the
