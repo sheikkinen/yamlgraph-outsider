@@ -35,6 +35,8 @@ def fake_bin(tmp_path: Path) -> Path:
     Only these three plus the shell utilities the launcher needs are on PATH, so the
     real git/gh/yamlgraph can never leak into a test.
     """
+    if os.name == "nt":
+        pytest.skip("fake executables are POSIX shell scripts on PATH; run these tests on a POSIX host")
     bin_dir = tmp_path / "bin"
     bin_dir.mkdir()
     for util in ("sh", "date", "sed", "grep", "head", "tail", "mkdir", "basename", "dirname", "cut", "printf"):
