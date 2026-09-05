@@ -1,0 +1,14 @@
+{
+  "reading": {
+    "restatement": "The author built an automated pipeline to analyze 242 software capabilities by collecting facts about each (description, origin, codebase usage), asking an AI model to classify each capability by user type and recommend keep/remove, then validating the model's answers against the collected facts. A trial run on 30 capabilities found that the fact-collection and validation parts work, identified 2 unused capabilities (suggesting 10–20 of 242 may be removable), found that roughly half serve only internal developers, and revealed that the model's user-type classification is unreliable and its business-value summaries are generic restatements. The author acknowledges using the wrong AI model, writing tool-focused summaries instead of findings-focused ones, and using project-internal terminology. The text does not say where the results are stored, how to access or run the pipeline, what the 242 capabilities list is, or what the \"agreed fast model\" and \"business plan\" refer to.",
+    "opinion": "NO",
+    "opinion_reason": "The description explains the approach and trial findings but does not state where the code or results are, how to run the pipeline, what changed in the repository, or what the next step requires before merging.",
+    "unclear": "\"the project's internal shorthand\" · what specific terms are project-specific?\n\"the agreed fast model\" · which model was agreed to, and where is that agreement documented?\n\"the business plan says matter most\" · what is the business plan and where is it?\n\"the template I copied\" · which template?",
+    "needs": "Where the pipeline code and trial results are located in the repository.\nHow to run the pipeline and what dependencies or configuration it requires.\nWhat the 242 capabilities list is and where it lives.\nCost or resource requirements (compute, API calls, time).\nWhether this PR adds the pipeline code itself or only documents a trial run.\nWhat \"contested\" rows mean operationally and how many appeared.\nThe six hidden test cases and their results.\nWhether the model's category choices are logged or auditable."
+  },
+  "provider": "anthropic",
+  "model": "claude-haiku-4-5",
+  "fixture": "plain-591",
+  "run": 1,
+  "recorded": "2026-09-05T13:51:30.974638+00:00"
+}

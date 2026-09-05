@@ -1,0 +1,64 @@
+# yamlgraph-outsider standalone graph.
+# The reader receives only the pull request title and body, and nothing else.
+# The llm node has no tools; it names no provider and no model.
+# Provider and model resolution come from .env via YAMLGraph.
+version: "1.0"
+name: yamlgraph-outsider
+description: "Read one PR description as a complete outsider; report what cannot be understood."
+prompts_relative: true
+prompts_dir: prompts
+
+defaults:
+  temperature: 0.0
+
+state:
+  pr: str
+  repo: str
+  input_path: str
+  comment: str
+  report_path: str
+  pr_text: str
+  reading: dict
+  result: dict
+
+tools:
+  fetch_pr:
+    type: python
+    path: tools.py
+    function: fetch_pr
+    description: "Fetch PR title+body via gh, or read a fixture file."
+  finalize:
+    type: python
+    path: tools.py
+    function: finalize
+    description: "Validate the structured reading, derive the verdict, render, optionally post."
+
+nodes:
+  fetch_pr:
+    type: python
+    tool: fetch_pr
+    state_key: pr_text
+    on_error: fail
+  outsider:
+    type: llm
+    prompt: outsider
+    temperature: 0.0
+    variables:
+      pr_text: "{state.pr_text}"
+    state_key: reading
+    on_error: fail
+  finalize:
+    type: python
+    tool: finalize
+    state_key: result
+    on_error: fail
+
+edges:
+  - from: START
+    to: fetch_pr
+  - from: fetch_pr
+    to: outsider
+  - from: outsider
+    to: finalize
+  - from: finalize
+    to: END

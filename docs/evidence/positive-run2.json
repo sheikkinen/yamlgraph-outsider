@@ -1,0 +1,14 @@
+{
+  "reading": {
+    "restatement": "This PR adds a pipeline that audits 242 software capabilities (features claimed by yamlgraph, a YAML-based AI pipeline tool) to determine which user types each serves, whether anything in the codebase uses it, and whether it should be kept or removed. The pipeline has four steps: extracting facts about each capability via code search and git grep (no AI), classifying each into one of ten user types using Claude Haiku with validation, checking that cited evidence actually exists in the source, and running against six pre-written canary answers to catch model failures. A 30-capability trial run found that two capabilities have no codebase usage (removal candidates), about half serve only internal developers, the user-type classification is unreliable (one category became a catch-all, two business-priority categories got zero rows), and the business-value summaries are not useful for ranking. The text does not say whether the full 242-capability run will proceed or what decision authority will act on removal recommendations.",
+    "opinion": "YES",
+    "opinion_reason": "The description states what changed, what the trial found, what is knowingly incomplete, where to look, and how to run it, though it does not commit to next steps.",
+    "unclear": "\"someone writing a graph\" · is this a user type name, a catch-all category, or a description of behavior?\n\"mercury-2\" · is this a model name or a code identifier?\n\"retire\" rows · does this mean rows marked for removal, or rows that have been removed?\n\"cross-cutting\" · in what sense — used by all capabilities, or orthogonal to user type?\n\"FR-990\" · is this a ticket, a document, or a feature request object in the repository?",
+    "needs": "Whether the full 242-capability run is planned and on what timeline.\nWhether the five listed fixes will be implemented before or after the full run.\nWho decides whether to act on removal recommendations and by what process.\nWhether the checker's output is currently used in any automated workflow or only for advisory review.\nConfirmation that no capabilities are actually removed by this PR (only recommended)."
+  },
+  "provider": "anthropic",
+  "model": "claude-haiku-4-5",
+  "fixture": "positive",
+  "run": 2,
+  "recorded": "2026-09-05T13:52:41.627002+00:00"
+}

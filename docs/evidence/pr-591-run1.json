@@ -1,0 +1,15 @@
+{
+  "reading": {
+    "restatement": "This change adds code and pilot data for a CAP journey census feature (FR-990). The author ran three pilot reads of 30 CAPs each and committed the raw results (docs/census/cap-journey-pilot-2026-09-05.*). The code changes include fixes discovered during the pilot: demoting an enum leak, excluding a self-consumption directory, adding node-type consumer needles, deriving extend_to from journeys.yaml, adding a value_generic filter, and implementing tolerant evidence matching with kind recorded. The prompt was revised (revision 2) via scripts/author.sh to focus on end-user journeys and remove extend. The render.py file was split to keep tools.py under a size limit. Shape anchors passed 30/30 tests, but journey canaries still failed after one rubric revision, so the prompt loop was exited per plan section 8. The text does not say who will use this or what the business purpose is.",
+    "opinion": "NO",
+    "opinion_reason": "The description uses unexplained project-specific terms and references (FR-990, CAP, journeys.yaml, shape anchors, journey canaries, rubric revision, plan section 8) that prevent determining whether the changes are correct or complete without external context.",
+    "unclear": "\"CAP journey census\" · what is a CAP and what does census mean in this context?\n\"enum-leak demotion\" · what is an enum leak and why is demotion the fix?\n\"own-example-dir exclusion\" · which directory and why was self-consumption the problem?\n\"node-type consumer needles\" · what are needles and what do they match?\n\"extend_to derived from journeys.yaml wedges\" · what are wedges and how does derivation work?\n\"value_generic filter\" · what values are being filtered and why?\n\"journey canaries\" · what are canaries in this context?\n\"plan section 8\" · what plan and what does section 8 say?\n\"FR-990 Proposed Solution 1-5\" · where is this documented?",
+    "needs": "How were the 30 CAPs selected for the pilot?\nWhat do the test results show beyond \"shape anchors pass 30/30\"?\nWhy did journey canaries fail and what is the plan to fix them?\nWhat is the size gate that render.py and tools.py must respect?\nAre there performance or cost implications of these changes?\nHow should this be tested before merge?\nWhat is the scope of \"remaining fixes listed in FR-990 Proposed Solution 1-5\"?"
+  },
+  "provider": "anthropic",
+  "model": "claude-haiku-4-5",
+  "fixture": "pr-591",
+  "run": 1,
+  "recorded": "2026-09-05T14:02:17.778036+00:00",
+  "graph_rc": 1
+}

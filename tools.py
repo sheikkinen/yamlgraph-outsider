@@ -9,7 +9,8 @@ finalize : validate the model's structured answer into typed models, reduce, der
 The graph names no provider or model; the report records what `.env` configured.
 """
 
-from __future__ import annotations
+# No `from __future__ import annotations`: yamlgraph loads this file by path, and
+# pydantic must see real types at class-creation time (forward refs do not resolve).
 
 import json
 import os
@@ -303,11 +304,17 @@ def finalize(state: dict[str, Any]) -> dict[str, Any]:
         raise ValueError("comment=true requires a PR source, not --input")
     if is_pr:
         pr, repo = _pr_and_repo(state)
+    prov = provenance(os.environ)
+    dump_path = os.environ.get("OUTSIDER_DUMP_READING")
+    if dump_path:  # evidence capture: the raw claim, before validation can reject it
+        Path(dump_path).write_text(
+            json.dumps({"reading": _raw_dump(state.get("reading")), "provider": prov.provider, "model": prov.model}, indent=2, ensure_ascii=False) + "\n",
+            encoding="utf-8",
+        )
     reading = parse_reading(state.get("reading"))
     source_text = str(state.get("pr_text") or "")
     reduced = reduce_items(source_text, reading.unclear)
     verdict = derive_verdict(reading.restatement, reduced.retained)
-    prov = provenance(os.environ)
     label = f"pr-{pr}" if is_pr else Path(str(state.get("input_path"))).stem
     report = render(reading, reduced, verdict, prov, label)
     validate_report_text(report)
@@ -315,13 +322,6 @@ def finalize(state: dict[str, Any]) -> dict[str, Any]:
     out = Path(str(state["report_path"]))
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(report, encoding="utf-8")
-
-    dump_path = os.environ.get("OUTSIDER_DUMP_READING")
-    if dump_path:
-        Path(dump_path).write_text(
-            json.dumps({"reading": _raw_dump(state.get("reading")), "provider": prov.provider, "model": prov.model}, indent=2, ensure_ascii=False) + "\n",
-            encoding="utf-8",
-        )
 
     posted = False
     if want_comment:
