@@ -12,8 +12,9 @@ SCRIPT = (ROOT / "yamlgraph-outsider").read_text(encoding="utf-8")
 
 def test_script_static_shape():
     assert SCRIPT.count("yamlgraph graph run") == 1
-    assert not re.search(r"(^|[^\w-])gh\s", SCRIPT), "the launcher must not call gh"
-    assert len(re.findall(r"(^|[;&|(\s])git\s", SCRIPT, re.M)) == 1, "exactly one git call (remote lookup)"
+    invocation = r"(^|[;&|(]\s*|\$\()\s*{}\s"
+    assert not re.search(invocation.format("gh"), SCRIPT, re.M), "the launcher must not call gh"
+    assert len(re.findall(invocation.format("git"), SCRIPT, re.M)) == 1, "exactly one git call (remote lookup)"
     assert "--model" not in SCRIPT and "--provider" not in SCRIPT
     assert not re.search(r"claude|gpt-|mistral-|haiku|sonnet", SCRIPT, re.I)
 

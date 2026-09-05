@@ -30,9 +30,17 @@ def _write_exe(path: Path, body: str) -> None:
 
 @pytest.fixture
 def fake_bin(tmp_path: Path) -> Path:
-    """A PATH directory whose yamlgraph/gh/git record argv and obey env-controlled behaviour."""
+    """A PATH directory whose yamlgraph/gh/git record argv and obey env-controlled behaviour.
+
+    Only these three plus the shell utilities the launcher needs are on PATH, so the
+    real git/gh/yamlgraph can never leak into a test.
+    """
     bin_dir = tmp_path / "bin"
     bin_dir.mkdir()
+    for util in ("sh", "date", "sed", "grep", "head", "tail", "mkdir", "basename", "dirname", "cut", "printf"):
+        real = shutil.which(util)
+        if real:
+            (bin_dir / util).symlink_to(real)
     _write_exe(
         bin_dir / "yamlgraph",
         'printf "%s\\n" "$@" > "$FAKE_LOG_DIR/yamlgraph.argv"\n'
@@ -86,7 +94,7 @@ def run_wrapper(fake_bin: Path, demo_dir: Path, tmp_path: Path):
 
     def _run(*args: str, env_extra: dict[str, str] | None = None, rc: int = 0, report: str | None = VALID_REPORT):
         env = {
-            "PATH": f"{fake_bin}:/usr/bin:/bin",
+            "PATH": str(fake_bin),
             "HOME": str(tmp_path),
             "FAKE_LOG_DIR": str(log_dir),
             "FAKE_YAMLGRAPH_RC": str(rc),

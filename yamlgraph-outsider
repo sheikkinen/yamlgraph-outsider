@@ -1,0 +1,70 @@
+#!/bin/sh
+# yamlgraph-outsider — read a PR's title and body as a complete outsider.
+#
+#   ./yamlgraph-outsider <pr> [--repo owner/name] [--comment]
+#   ./yamlgraph-outsider --input <file.md>
+#
+# This launcher checks prerequisites and starts the graph. It reads nothing
+# from GitHub and posts nothing; graph.yaml + tools.py do that. It chooses no
+# model; .env does. Success needs two witnesses: graph exit 0 AND a report
+# that validates.
+set -u
+HERE="$(cd "$(dirname "$0")" && pwd)"; cd "$HERE" || exit 1
+
+usage() { echo "usage: yamlgraph-outsider <pr> [--repo owner/name] [--comment] | --input <file.md>" >&2; exit 64; }
+need() { command -v "$1" >/dev/null 2>&1 || { echo "yamlgraph-outsider: '$1' not found — install: $3" >&2; exit "$2"; }; }
+
+PR=""; REPO=""; COMMENT=false; INPUT=""
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --repo) [ $# -ge 2 ] || usage; REPO="$2"; shift 2 ;;
+    --comment) COMMENT=true; shift ;;
+    --input) [ $# -ge 2 ] || usage; INPUT="$2"; shift 2 ;;
+    -*) echo "yamlgraph-outsider: unknown flag $1" >&2; usage ;;
+    *) [ -z "$PR" ] || usage; PR="$1"; shift ;;
+  esac
+done
+[ -n "$PR" ] || [ -n "$INPUT" ] || usage
+[ -n "$PR" ] && [ -n "$INPUT" ] && usage
+[ -n "$INPUT" ] && [ "$COMMENT" = true ] && { echo "yamlgraph-outsider: --comment needs a PR, not --input" >&2; exit 64; }
+
+need yamlgraph 70 "pipx install yamlgraph"
+need gh 71 "https://cli.github.com/ (then: gh auth login)"
+need git 72 "https://git-scm.com/downloads"
+[ -f .env ] || { echo "yamlgraph-outsider: .env missing — cp .env.sample .env and add your provider key" >&2; exit 73; }
+
+if [ -n "$INPUT" ]; then
+  [ -f "$INPUT" ] || { echo "yamlgraph-outsider: input not found: $INPUT" >&2; exit 66; }
+  LABEL="$(basename "${INPUT%.md}")"
+else
+  if [ -z "$REPO" ]; then
+    REMOTE="$(git remote get-url origin 2>/dev/null)" || REMOTE=""
+    REPO="$(printf '%s' "$REMOTE" | sed -E 's#^(https://github.com/|git@github.com:)##; s#\.git$##')"
+    [ -n "$REPO" ] || { echo "yamlgraph-outsider: no GitHub origin remote here — pass --repo owner/name" >&2; exit 65; }
+  fi
+  LABEL="$PR"
+fi
+
+STAMP="$(date -u +%Y%m%dT%H%M%SZ)"
+REPORT="out/${LABEL}-${STAMP}.md"; LOG="out/${LABEL}-${STAMP}.log"
+mkdir -p out
+
+yamlgraph graph run graph.yaml --var "pr=$PR" --var "repo=$REPO" --var "input_path=$INPUT" \
+  --var "comment=$COMMENT" --var "report_path=$REPORT" --full > "$LOG" 2>&1
+RC=$?
+
+if [ "$RC" -ne 0 ]; then
+  echo "yamlgraph-outsider: graph run failed (rc=$RC); see $LOG" >&2
+  grep -iE 'error|rejected|failed' "$LOG" | tail -3 >&2
+  [ -f "$REPORT" ] && echo "yamlgraph-outsider: a report was written before the failure: $REPORT" >&2
+  exit 1
+fi
+[ -s "$REPORT" ] || { echo "yamlgraph-outsider: graph exited 0 but wrote no report at $REPORT; see $LOG" >&2; exit 1; }
+if ! head -1 "$REPORT" | grep -qE '^\*\*Derived verdict:\*\* (YES|NO)' \
+   || [ "$(grep -c '^## [1-4]\. ' "$REPORT")" -ne 4 ] \
+   || ! grep -q '^### Set aside by the reducer' "$REPORT"; then
+  echo "yamlgraph-outsider: graph exited 0 but the report at $REPORT does not validate; see $LOG" >&2; exit 1
+fi
+echo "yamlgraph-outsider: $(head -1 "$REPORT" | cut -c1-28) → $REPORT"
+[ "$COMMENT" = true ] && echo "yamlgraph-outsider: posted as a comment on #$PR ($REPO)"
+exit 0
