@@ -114,6 +114,35 @@ def test_report_missing_section_fails(run_wrapper):
     assert proc.returncode != 0
 
 
+def test_report_four_duplicate_headings_fails(run_wrapper):
+    body = "**Derived verdict:** NO\\n\\n" + "## 4. wrong\\n\\nx\\n\\n" * 4 + "### Set aside by the reducer (not counted)\\n\\nnone\\n"
+    proc, _ = run_wrapper("7", "--repo", "acme/widgets", report=body)
+    assert proc.returncode != 0
+
+
+def test_report_out_of_order_headings_fails(run_wrapper):
+    swapped = VALID_REPORT.replace("## 1. In my own words", "## TMP").replace(
+        "## 2. Could I decide whether to merge this from the description alone?", "## 1. In my own words"
+    ).replace("## TMP", "## 2. Could I decide whether to merge this from the description alone?")
+    proc, _ = run_wrapper("7", "--repo", "acme/widgets", report=swapped)
+    assert proc.returncode != 0
+
+
+def test_report_wrong_heading_title_fails(run_wrapper):
+    proc, _ = run_wrapper("7", "--repo", "acme/widgets", report=VALID_REPORT.replace("## 3. Words and references I could not understand", "## 3. Words"))
+    assert proc.returncode != 0
+
+
+def test_report_wrong_reducer_heading_fails(run_wrapper):
+    proc, _ = run_wrapper("7", "--repo", "acme/widgets", report=VALID_REPORT.replace("### Set aside by the reducer (not counted)", "### Set aside by the reducer"))
+    assert proc.returncode != 0
+
+
+def test_report_duplicate_canonical_heading_fails(run_wrapper):
+    proc, _ = run_wrapper("7", "--repo", "acme/widgets", report=VALID_REPORT + "## 4. What a merge decision would still need\\n")
+    assert proc.returncode != 0
+
+
 def test_report_path_chosen_before_run(run_wrapper):
     _, argv = run_wrapper("7", "--repo", "acme/widgets")
     rp = next(a for a in argv if a.startswith("report_path="))

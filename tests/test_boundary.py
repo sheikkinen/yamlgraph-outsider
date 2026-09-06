@@ -8,7 +8,7 @@ import pytest
 # --- normalisation of the two list fields --------------------------------------------------
 
 def test_lines_accepts_list_of_str(tools):
-    assert tools.normalise_lines(["a", " b ", ""]) == ["a", "b"]
+    assert tools.normalise_lines(["a", " b "]) == ["a", "b"]
 
 
 def test_lines_accepts_json_encoded_list_of_str(tools):
@@ -16,12 +16,31 @@ def test_lines_accepts_json_encoded_list_of_str(tools):
 
 
 def test_lines_accepts_newline_delimited_text_with_bullets(tools):
+    # blank lines between items are layout, not members; "- " / "* " / "• " are bullets
     assert tools.normalise_lines("- a\n* b\n\n• c\n") == ["a", "b", "c"]
 
 
 def test_lines_empty_string_is_empty_list(tools):
+    # the prompt schema says "Empty string if none" — the one sanctioned empty
     assert tools.normalise_lines("") == []
-    assert tools.normalise_lines(None) == []
+    assert tools.normalise_lines("   ") == []
+
+
+@pytest.mark.parametrize("bad", [None, ["a", ""], ["a", "  "], [""], '["a", ""]'])
+def test_lines_rejects_none_and_empty_members(tools, bad):
+    with pytest.raises(ValueError):
+        tools.normalise_lines(bad)
+
+
+@pytest.mark.parametrize("bad", ['"item"', "42", "true", "null"])
+def test_lines_rejects_json_scalar_text(tools, bad):
+    with pytest.raises(ValueError):
+        tools.normalise_lines(bad)
+
+
+def test_lines_rejects_bullet_only_line(tools):
+    with pytest.raises(ValueError):
+        tools.normalise_lines("- a\n- \n- c")
 
 
 @pytest.mark.parametrize(
@@ -89,6 +108,12 @@ def test_parse_reading_accepts_model_dump_object(tools):
         {"unclear": "no separator here"},
         {"unclear": '["a", 1]'},
         {"needs": "[1, 2]"},
+        {"restatement": 42},
+        {"opinion_reason": 3.5},
+        {"opinion": 1},
+        {"restatement": None},
+        {"unclear": None},
+        {"needs": ["ok", ""]},
     ],
 )
 def test_parse_reading_rejects(tools, over):
