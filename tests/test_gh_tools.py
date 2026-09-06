@@ -132,3 +132,39 @@ def test_finalize_applies_reducer_before_verdict(tools, gh_env, tmp_path):
     result = tools.finalize(_state(tmp_path, reading=reading, pr_text="# T\n\nglossed (x) and real"))
     assert result["derived_verdict"] == "YES"
     assert result["retained_count"] == 1 and result["demoted_count"] == 3
+
+
+# --- OUTSIDER_DUMP_READING: evidence-only, opt-in raw capture -------------------------------------
+
+def test_dump_disabled_by_default_writes_nothing_extra(tools, gh_env, tmp_path, monkeypatch):
+    monkeypatch.delenv("OUTSIDER_DUMP_READING", raising=False)
+    tools.finalize(_state(tmp_path))
+    assert sorted(p.name for p in (tmp_path / "out").iterdir()) == ["r.md"]
+
+
+def test_dump_valid_reading_written_before_report(tools, gh_env, tmp_path, monkeypatch):
+    dump = tmp_path / "ev" / "x.json"
+    dump.parent.mkdir()
+    monkeypatch.setenv("OUTSIDER_DUMP_READING", str(dump))
+    result = tools.finalize(_state(tmp_path))
+    payload = json.loads(dump.read_text(encoding="utf-8"))
+    assert payload["reading"] == _reading() and payload["provider"] and payload["model"]
+    assert result["derived_verdict"] == "YES"  # capture does not change semantics
+
+
+def test_dump_rejected_reading_still_captured(tools, gh_env, tmp_path, monkeypatch):
+    dump = tmp_path / "ev" / "rej.json"
+    dump.parent.mkdir()
+    monkeypatch.setenv("OUTSIDER_DUMP_READING", str(dump))
+    bad = _reading() | {"restatement": ""}
+    with pytest.raises(ValueError):
+        tools.finalize(_state(tmp_path, reading=bad))
+    assert json.loads(dump.read_text(encoding="utf-8"))["reading"] == bad
+    assert not (tmp_path / "out" / "r.md").exists()
+
+
+def test_dump_write_failure_surfaces(tools, gh_env, tmp_path, monkeypatch):
+    monkeypatch.setenv("OUTSIDER_DUMP_READING", str(tmp_path / "no-such-dir" / "x.json"))
+    with pytest.raises(OSError):
+        tools.finalize(_state(tmp_path))
+    assert not (tmp_path / "out" / "r.md").exists()

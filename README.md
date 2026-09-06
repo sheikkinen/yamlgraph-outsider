@@ -16,8 +16,8 @@ cd yamlgraph-outsider
 cp .env.sample .env             # add one provider key
 ```
 
-`.env.sample` is the **tested sample configuration**: Anthropic,
-`claude-haiku-4-5`. The pipeline itself names no provider and no model; edit
+`.env.sample` is the **sample configuration**: Anthropic, `claude-haiku-4-5`.
+It is experimental: its recorded calibration run did not pass (see *Tests*). The pipeline itself names no provider and no model; edit
 `.env` to change either (one variable per line — `PROVIDER=openai`,
 `OPENAI_API_KEY=…`, `OPENAI_MODEL=…`). Omit `<PROVIDER>_MODEL` and yamlgraph's
 own default applies; the report then records `framework-default`, never a
@@ -88,8 +88,11 @@ Tested against yamlgraph 0.5.17+ (the checkout used was 0.5.24). Fixture
 expectations were written before the runs (`fixtures/EXPECTATIONS.md`); the
 recorded runs are in `docs/evidence/`. **They did not all match**: on haiku,
 the "positive" fixture drew four genuine items and the densest fixture exceeded
-the eight-item cap and was rejected. The mismatch is kept as a strict expected
-failure in the tests, not edited away.
+the eight-item cap and was rejected. The sample configuration therefore has a
+**recorded failed calibration**; the fixtures and the expected sequence are
+unchanged, the failed readings are kept as historical evidence, and the live
+test keeps asserting the original expectation on fresh runs. A configuration
+that passes twice will be recorded under new evidence filenames when found.
 
 ## Known limits
 

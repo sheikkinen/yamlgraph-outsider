@@ -63,18 +63,9 @@ def test_both_runs_agree_per_fixture(tools):
         assert len(results) == 1, (name, results)
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="2026-09-05 finding on the sample configuration (haiku-4-5, T=0): pr-591 REJECTED both runs "
-    "(9 raw items > 8 cap), pr-591-v2 YES both runs, positive NO both runs (4 retained: 'someone writing a graph', "
-    "'mercury-2', '\"retire\" rows', 'cross-cutting'). The pre-written NO/NO/NO/YES did not hold; fixture-set "
-    "revision is a follow-up, not a silent edit. See fixtures/EXPECTATIONS.md → Results.",
-)
-def test_prewritten_expectations_hold(tools):
-    readings = _evidence_readings()
-    for name, expected in EXPECTED.items():
-        for r in RUNS:
-            assert _derive(tools, name, readings[f"{name}-run{r}"]) == expected, (name, r)
+# The pre-written NO/NO/NO/YES contract is asserted ONLY by the live test below, on fresh
+# evidence. The recorded 2026-09-05 readings did not meet it (REJECTED/NO/YES/NO); they are
+# kept as historical evidence and are not turned into an oracle. See fixtures/EXPECTATIONS.md.
 
 
 @pytest.mark.live
