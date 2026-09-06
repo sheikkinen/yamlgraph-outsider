@@ -44,6 +44,7 @@ HEADINGS = (
     "## 4. What a merge decision would still need",
 )
 DEMOTED_HEADING = "### Set aside by the reducer (not counted)"
+_NOT_JSON = object()
 
 
 # --- typed models --------------------------------------------------------------------------------
@@ -87,27 +88,41 @@ class Provenance(BaseModel):
 
 
 def normalise_lines(value: Any) -> list[str]:
-    """Accept list[str], a JSON-encoded list[str], or newline-delimited text. Reject the rest."""
-    if value is None:
-        return []
+    """Accept list[str], a JSON-encoded list[str], or newline-delimited text. Reject the rest.
+
+    Fail closed: None, empty members, JSON scalars/objects and non-string members all raise.
+    The one sanctioned empty is the empty string — the prompt schema's "Empty string if none".
+    """
     if isinstance(value, list):
         if not all(isinstance(x, str) for x in value):
             raise ValueError("list field has non-string members")
-        return [x.strip() for x in value if x.strip()]
+        items = [x.strip() for x in value]
+        if any(not x for x in items):
+            raise ValueError("list field has an empty member")
+        return items
     if not isinstance(value, str):
         raise ValueError(f"list field has unsupported type {type(value).__name__}")
     text = value.strip()
     if not text:
         return []
-    if text.startswith("["):
+    if text[0] == "[":
         try:
             parsed = json.loads(text)
         except json.JSONDecodeError as e:
-            raise ValueError(f"list field looks like JSON but does not parse: {e}") from e
+            raise ValueError(f"list field looks like a JSON list but does not parse: {e}") from e
         return normalise_lines(parsed)
-    if text.startswith("{"):
+    if text[0] == "{":
         raise ValueError("list field is a JSON object, not a list")
-    return [ln.strip().lstrip("-*• ").strip() for ln in text.splitlines() if ln.strip()]
+    try:
+        scalar = json.loads(text)  # a whole-text JSON scalar ("item", 42, true, null) is not a list
+    except json.JSONDecodeError:
+        scalar = _NOT_JSON  # ordinary text; real items often begin with an ASCII-quoted phrase
+    if scalar is not _NOT_JSON:
+        raise ValueError(f"list field is JSON {type(scalar).__name__}, not a list")
+    items = [ln.strip().lstrip("-*• ").strip() for ln in text.splitlines() if ln.strip()]
+    if any(not x for x in items):
+        raise ValueError("list field has a bullet with no text")
+    return items
 
 
 def parse_unclear_line(raw: str) -> tuple[str, str]:
@@ -130,6 +145,9 @@ def parse_reading(raw: Any) -> OutsiderReading:
     if not isinstance(raw, dict):
         raise ValueError("reading is not a mapping")
     try:
+        for key in ("restatement", "opinion", "opinion_reason"):
+            if not isinstance(raw.get(key), str):
+                raise ValueError(f"{key} must be a string, got {type(raw.get(key)).__name__}")
         unclear_lines = normalise_lines(raw.get("unclear"))
         needs = normalise_lines(raw.get("needs"))
         if len(unclear_lines) > MAX_UNCLEAR:
@@ -138,9 +156,9 @@ def parse_reading(raw: Any) -> OutsiderReading:
             raise ValueError(f"{len(needs)} needs > {MAX_NEEDS}")
         items = [UnclearItem(quote=q, question=qq) for q, qq in map(parse_unclear_line, unclear_lines)]
         return OutsiderReading(
-            restatement=str(raw.get("restatement") or "").strip(),
-            opinion=str(raw.get("opinion") or "").strip(),  # exact "YES"/"NO" only
-            opinion_reason=str(raw.get("opinion_reason") or "").strip(),
+            restatement=raw["restatement"].strip(),
+            opinion=raw["opinion"].strip(),  # exact "YES"/"NO" only
+            opinion_reason=raw["opinion_reason"].strip(),
             unclear=items,
             needs=needs,
         )

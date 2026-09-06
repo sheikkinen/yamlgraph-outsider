@@ -43,6 +43,14 @@ def test_lines_rejects_bullet_only_line(tools):
         tools.normalise_lines("- a\n- \n- c")
 
 
+def test_lines_ascii_quoted_first_item_is_text_not_json(tools):
+    # recorded evidence (plain-591-run1): models often quote with ASCII double quotes
+    assert tools.normalise_lines('"shape anchors" · what are these?\n"the process" · which?') == [
+        '"shape anchors" · what are these?',
+        '"the process" · which?',
+    ]
+
+
 @pytest.mark.parametrize(
     "bad",
     ['{"a": 1}', "[1, 2]", '["a", 1]', 42, 3.5, {"a": "b"}, [["a"]], "[not json"],

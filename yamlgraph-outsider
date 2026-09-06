@@ -60,9 +60,14 @@ if [ "$RC" -ne 0 ]; then
   exit 1
 fi
 [ -s "$REPORT" ] || { echo "yamlgraph-outsider: graph exited 0 but wrote no report at $REPORT; see $LOG" >&2; exit 1; }
+# The report must carry exactly these four headings, once, in this order, plus the reducer subsection.
+EXPECTED_HEADINGS='## 1. In my own words
+## 2. Could I decide whether to merge this from the description alone?
+## 3. Words and references I could not understand
+## 4. What a merge decision would still need'
 if ! head -1 "$REPORT" | grep -qE '^\*\*Derived verdict:\*\* (YES|NO)' \
-   || [ "$(grep -c '^## [1-4]\. ' "$REPORT")" -ne 4 ] \
-   || ! grep -q '^### Set aside by the reducer' "$REPORT"; then
+   || [ "$(grep '^## ' "$REPORT")" != "$EXPECTED_HEADINGS" ] \
+   || [ "$(grep -c '^### Set aside by the reducer (not counted)$' "$REPORT")" -ne 1 ]; then
   echo "yamlgraph-outsider: graph exited 0 but the report at $REPORT does not validate; see $LOG" >&2; exit 1
 fi
 echo "yamlgraph-outsider: $(head -1 "$REPORT" | cut -c1-28) → $REPORT"
